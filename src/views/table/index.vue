@@ -1,13 +1,11 @@
 <template>
   <div class="app-container">
     <div class="filter-container">
+      <p>{{ listQuery.group_name }}</p>
       <el-input v-model="listQuery.title" placeholder="用例名称" style="width: 150px;" class="filter-item" @keyup.enter.native="handleFilter" />
       <el-input v-model="listQuery.title" placeholder="用例ID" style="width: 150px;" class="filter-item" @keyup.enter.native="handleFilter" />
-      <el-select v-model="listQuery.type" placeholder="Type" clearable class="filter-item" style="width: 130px">
-        <el-option v-for="item in calendarTypeOptions" :key="item.key" :label="item.display_name+'('+item.key+')'" :value="item.key" />
-      </el-select>
-      <el-select v-model="listQuery.sort" style="width: 140px" class="filter-item" @change="handleFilter">
-        <el-option v-for="item in sortOptions" :key="item.key" :label="item.label" :value="item.key" />
+      <el-select v-model="listQuery.group_name" style="width: 140px" class="filter-item" @change="handleFilter">
+        <el-option v-for="item in sortOptions" :key="item.group_name" :label="item.group_name" :value="item.group_name" />
       </el-select>
       <el-button v-waves class="filter-item" type="primary" icon="el-icon-search" @click="handleFilter">
         查询
@@ -98,13 +96,15 @@
 <!--          <span v-else>0</span>-->
 <!--        </template>-->
 <!--      </el-table-column>-->
+
       <el-table-column label="状态" class-name="status-col" width="100">
         <template slot-scope="{row}">
-          <el-tag :type="row.status?'success':0">
+          <el-tag :type="row.status?'success':'0'">
             {{ row.status?'运行中':'未运行' }}
           </el-tag>
         </template>
       </el-table-column>
+
       <el-table-column label="操作" align="center" width="250" class-name="small-padding fixed-width">
         <template slot-scope="{row}">
           <el-button type="primary" size="mini" @click="handleUpdate(row)">
@@ -174,7 +174,7 @@
 import waves from '@/directive/waves' // waves directive
 import { parseTime } from '@/utils'
 import Pagination from '@/components/Pagination'
-import { fetchList } from '@/api/test' // secondary package based on el-pagination
+import { fetchList, getgroups } from '@/api/test' // secondary package based on el-pagination
 
 const calendarTypeOptions = [
   { key: 'CN', display_name: 'China' },
@@ -204,17 +204,23 @@ export default {
       list: null,
       total: 0,
       listLoading: true,
-      // 查询参数
+      // 用例列表查询参数
       listQuery: {
         page: 1,
         limit: 10,
         case_name: null,
         case_id: null,
-        group_name: "qqq"
+        group_name: null
+      },
+      // 用例分组查询参数
+      groupQuery: {
+        page: 1,
+        limit: 20
       },
       importanceOptions: [1, 2, 3],
       calendarTypeOptions,
-      sortOptions: [{ label: 'ID Ascending', key: '+id' }, { label: 'ID Descending', key: '-id' }],
+      // 选择用例分组  存放字典形式
+      sortOptions: [],
       statusOptions: ['published', 'draft', 'deleted'],
       showReviewer: false,
       temp: {
@@ -243,17 +249,43 @@ export default {
     }
   },
   created() {
-    // 获取用例列表信息
-    this.getList()
+    // // 获取用例分组
+    // this.getgroup();
+    // // 获取用例列表信息
+    // this.getList()
+    this.getall()
   },
   methods: {
+    // 页面初始加载方法
+    getall() {
+      getgroups(this.groupQuery).then(response => {
+        // 获取分组信息
+        this.sortOptions = response.object;
+        if (response.object.length === 0) {
+          this.listQuery.group_name = null
+          return
+        }
+        this.listQuery.group_name = response.object[0].group_name ? response.object[0].group_name : null
+        const res = response.result
+        if (res === true) {
+          this.getList()
+        }
+      }).catch((error) => {
+        console.log(error)
+        this.$message({
+          message: error,
+          type: "error",// success,warning,error
+          duration: 4000,
+        });
+        this.listLoading = false
+      })
+    },
     getList() {
       this.listLoading = true
       fetchList(this.listQuery).then(response => {
         // 用例列表
         this.list = response.object
         // 总数量
-        console.log(response.object.length)
         this.total = response.object.length
 
         // Just to simulate the time of the request
@@ -264,6 +296,7 @@ export default {
     },
     handleFilter() {
       this.listQuery.page = 1
+      this.listQuery.limit = 10
       this.getList()
     },
     handleModifyStatus(row, status) {

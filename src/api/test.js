@@ -7,3 +7,11 @@ export function fetchList(params) {
     params
   })
 }
+
+export function getgroups(params) {
+  return test({
+    url: '/api/v1/cases/g_lists',
+    method: 'get',
+    params
+  })
+}
