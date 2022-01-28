@@ -1,4 +1,4 @@
-import {test} from '@/utils/request'
+import request, {test} from '@/utils/request'
 
 export function fetchList(params) {
   return test({
@@ -13,5 +13,12 @@ export function getgroups(params) {
     url: '/api/v1/cases/g_lists',
     method: 'get',
     params
+  })
+}
+
+export function logout() {
+  return test({
+    url: '/api/v1/user/logout',
+    method: 'post'
   })
 }

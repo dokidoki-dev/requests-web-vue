@@ -1,6 +1,8 @@
 import Cookies from 'js-cookie'
 
 const TokenKey = 'token'
+const uuid = 'uuid'
+const username = 'username'
 
 export function getToken() {
   return Cookies.get(TokenKey)
@@ -11,5 +13,8 @@ export function getToken() {
 // }
 
 export function removeToken() {
-  return Cookies.remove(TokenKey)
+  Cookies.remove(TokenKey)
+  Cookies.remove('uuid')
+  Cookies.remove('username')
+  return Cookies
 }

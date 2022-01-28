@@ -1,4 +1,5 @@
-import { login, logout, getInfo } from '@/api/user'
+import { login, getInfo } from '@/api/user'
+import { logout } from '@/api/test'
 import { getToken, setToken, removeToken } from '@/utils/auth'
 import { resetRouter } from '@/router'
 import { Message } from 'element-ui'
@@ -61,10 +62,10 @@ const actions = {
   },
 
   // user logout
-  logout({ commit, state }) {
+  logout({ commit }) {
     return new Promise((resolve, reject) => {
-      logout(state.token).then(() => {
-        commit('SET_TOKEN', '')
+      logout().then(() => {
+        // commit('SET_TOKEN', '')
         removeToken()
         resetRouter()
         resolve()
