@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { MessageBox, Message } from 'element-ui'
+import { MessageBox, Message, message } from 'element-ui'
 import store from '@/store'
 import { getToken } from '@/utils/auth'
 
@@ -135,6 +135,19 @@ test.interceptors.response.use(
       })
 
       return Promise.reject(res.msg || 'error')
+    } else if (res.code === 9200){
+      // Message({
+      //   message: res.msg || 'error',
+      //   type: 'error',
+      //   duration: 5 * 1000
+      // })
+      // setTimeout(function () {
+      //   location.reload();
+      // }, 3000);
+      // Message.error('登录状态失效！')
+
+      // 登录状态失效，刷新页面
+      location.reload();
     } else {
       return res
     }
