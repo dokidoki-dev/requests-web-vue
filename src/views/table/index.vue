@@ -1,9 +1,8 @@
 <template>
   <div class="app-container">
     <div class="filter-container">
-      <p>{{ listQuery.group_name }}</p>
-      <el-input v-model="listQuery.title" placeholder="用例名称" style="width: 150px;" class="filter-item" @keyup.enter.native="handleFilter" />
-      <el-input v-model="listQuery.title" placeholder="用例ID" style="width: 150px;" class="filter-item" @keyup.enter.native="handleFilter" />
+      <el-input v-model="listQuery.case_id" placeholder="用例ID" style="width: 150px;" class="filter-item" />
+      <el-input v-model="listQuery.case_name" placeholder="用例名称" style="width: 150px;" class="filter-item" />
       <el-select v-model="listQuery.group_name" style="width: 140px" class="filter-item" @change="handleFilter">
         <el-option v-for="item in sortOptions" :key="item.group_name" :label="item.group_name" :value="item.group_name" />
       </el-select>
@@ -85,18 +84,6 @@
           <span>{{ scope.row.is_rely_on?'是':'否' }}</span>
         </template>
       </el-table-column>
-<!--      <el-table-column label="Imp" width="80px">-->
-<!--        <template slot-scope="scope">-->
-<!--          <svg-icon v-for="n in +scope.row.importance" :key="n" icon-class="star" class="meta-item__icon" />-->
-<!--        </template>-->
-<!--      </el-table-column>-->
-<!--      <el-table-column label="Readings" align="center" width="95">-->
-<!--        <template slot-scope="{row}">-->
-<!--          <span v-if="row.pageviews" class="link-type" @click="handleFetchPv(row.pageviews)">{{ row.pageviews }}</span>-->
-<!--          <span v-else>0</span>-->
-<!--        </template>-->
-<!--      </el-table-column>-->
-
       <el-table-column label="状态" class-name="status-col" width="100">
         <template slot-scope="{row}">
           <el-tag :type="row.status?'success':'0'">
@@ -123,36 +110,93 @@
     <pagination v-show="total>0" :total="total" :page.sync="listQuery.page" :limit.sync="listQuery.limit" @pagination="getList" />
 
     <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
-      <el-form ref="dataForm" :rules="rules" :model="temp" label-position="left" label-width="70px" style="width: 400px; margin-left:50px;">
-        <el-form-item label="Type" prop="type">
-          <el-select v-model="temp.type" class="filter-item" placeholder="Please select">
-            <el-option v-for="item in calendarTypeOptions" :key="item.key" :label="item.display_name" :value="item.key" />
+      <el-form ref="dataForm" :rules="rules" :model="temp" label-position="left" label-width="70px" style="width: 400px; margin-left:50px;"  v-loading="dialogloading">
+        <el-form-item label="用例名字" prop="case_name">
+          <el-input v-model="temp.case_name" placeholder="用例名字" />
+        </el-form-item>
+        <el-form-item label="用例分组" prop="group_name" >
+          <el-select v-model="temp.group_name" style="width: 140px" class="filter-item">
+            <el-option v-for="item in sortOptions" :key="item.group_name" :label="item.group_name" :value="item.group_name"  />
           </el-select>
         </el-form-item>
-        <el-form-item label="Date" prop="timestamp">
-          <el-date-picker v-model="temp.timestamp" type="datetime" placeholder="Please pick a date" />
+        <el-form-item label="排序" prop="sort" >
+          <el-input v-model="temp.sort" placeholder="排序" />
         </el-form-item>
-        <el-form-item label="Title" prop="title">
-          <el-input v-model="temp.title" />
-        </el-form-item>
-        <el-form-item label="Status">
-          <el-select v-model="temp.status" class="filter-item" placeholder="Please select">
-            <el-option v-for="item in statusOptions" :key="item" :label="item" :value="item" />
+        <el-form-item label="使用环境变量url">
+          <el-select v-model="show_env_url" style="width: 140px" class="filter-item">
+            <el-option v-for="item in show_Options" :key="item" :label="item ? '是' : '否'" :value="item" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Imp">
-          <el-rate v-model="temp.importance" :colors="['#99A9BF', '#F7BA2A', '#FF9900']" :max="3" style="margin-top:8px;" />
+        <el-form-item label="请求url" prop="url" v-if="!show_env_url">
+          <el-input v-model="temp.url" placeholder="请求url" />
         </el-form-item>
-        <el-form-item label="Remark">
-          <el-input v-model="temp.remark" :autosize="{ minRows: 2, maxRows: 4}" type="textarea" placeholder="Please input" />
+        <el-form-item label="环境变量url" prop="env_url" v-if="show_env_url">
+          <el-input v-model="temp.env_url" placeholder="环境变量url" />
+        </el-form-item>
+        <el-form-item label="请求路径" prop="path">
+          <el-input v-model="temp.path" placeholder="请求路径path" />
+        </el-form-item>
+        <el-form-item label="使用环境变量header">
+          <el-select v-model="show_env_header" style="width: 140px" class="filter-item">
+            <el-option v-for="item in show_Options" :key="item" :label="item ? '是' : '否'" :value="item" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="环境变量header" prop="env_header" v-if="show_env_header" >
+          <el-input v-model="temp.env_header" placeholder="环境变量header" />
+        </el-form-item>
+        <el-form-item label="请求header" prop="header" v-if="!show_env_header" >
+          <el-input v-model="temp.header" :autosize="{ minRows: 2, maxRows: 4}" type="textarea" placeholder="请求header" />
+        </el-form-item>
+        <el-form-item label="请求方式" prop="method" >
+          <el-input v-model="temp.method" placeholder="请求方式method" />
+        </el-form-item>
+        <el-form-item label="请求参数" prop="params">
+          <el-input v-model="temp.params" :autosize="{ minRows: 2, maxRows: 4}" type="textarea" placeholder="请求参数params" />
+        </el-form-item>
+        <el-form-item label="请求数据" prop="request_data">
+          <el-input v-model="temp.request_data" :autosize="{ minRows: 2, maxRows: 4}" type="textarea" placeholder="请求数据data" />
+        </el-form-item>
+        <el-form-item label="是否断言" prop="is_assert">
+          <el-select v-model="temp.is_assert" style="width: 140px" class="filter-item">
+            <el-option v-for="item in show_Options" :key="item" :label="item ? '是' : '否'" :value="item === true ? 1 : 0 " />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="断言类型" prop="assert_mode" v-if="temp.is_assert === 1">
+          <el-input v-model="temp.assert_mode" placeholder="断言类型" />
+        </el-form-item>
+        <el-form-item label="断言数据" prop="assert_data" v-if="temp.is_assert === 1">
+          <el-input v-model="temp.assert_data" placeholder="断言数据" />
+        </el-form-item>
+        <el-form-item label="数据类型" prop="assert_type" v-if="temp.is_assert === 1">
+          <el-input v-model="temp.assert_type" placeholder="数据类型" />
+        </el-form-item>
+        <el-form-item label="断言预期结果" prop="a_result_data" v-if="temp.is_assert === 1">
+          <el-input v-model="temp.a_result_data" placeholder="断言预期结果数据" />
+        </el-form-item>
+        <el-form-item label="是否依赖" prop="is_rely_on">
+          <el-select v-model="temp.is_rely_on" style="width: 140px" class="filter-item">
+            <el-option v-for="item in show_Options" :key="item" :label="item ? '是' : '否'" :value="item === true ? 1 : 0 " />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="依赖id" prop="rely_id" v-if="temp.is_rely_on === 1">
+          <el-input v-model="temp.rely_id" placeholder="依赖用例id" />
+        </el-form-item>
+        <el-form-item label="依赖返回数据" prop="rely_data" v-if="temp.is_rely_on === 1">
+          <el-input v-model="temp.rely_data" placeholder="依赖接口的返回数据对象" />
+        </el-form-item>
+        <el-form-item label="使用依赖的方式" prop="rely_mode" v-if="temp.is_rely_on === 1">
+          <el-input v-model="temp.rely_mode" placeholder="依赖使用方式" />
+        </el-form-item>
+        <el-form-item label="使用依赖的key" prop="rely_key" v-if="temp.is_rely_on === 1">
+          <el-input v-model="temp.rely_key" placeholder="使用依赖的key" />
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogFormVisible = false">
-          Cancel
+          取消
         </el-button>
         <el-button type="primary" @click="dialogStatus==='create'?createData():updateData()">
-          Confirm
+          确定
         </el-button>
       </div>
     </el-dialog>
@@ -174,7 +218,7 @@
 import waves from '@/directive/waves' // waves directive
 import { parseTime } from '@/utils'
 import Pagination from '@/components/Pagination'
-import { fetchList, getgroups } from '@/api/test' // secondary package based on el-pagination
+import { createadd, fetchList, get_list_one, getgroups } from '@/api/test' // secondary package based on el-pagination
 
 const calendarTypeOptions = [
   { key: 'CN', display_name: 'China' },
@@ -223,29 +267,67 @@ export default {
       sortOptions: [],
       statusOptions: ['published', 'draft', 'deleted'],
       showReviewer: false,
+      // 控制展示环境变量还是非环境变量输入框问题
+      show_Options: [false, true],
+      show_env_url: false,
+      show_env_header: false,
+      // 存储用例信息
       temp: {
-        id: undefined,
-        importance: 1,
-        remark: '',
-        timestamp: new Date(),
-        title: '',
-        type: '',
-        status: 'published'
+        case_name: '',
+        group_name: '',
+        url: '',
+        env_url: '',
+        path: '',
+        header: null,
+        env_header: '',
+        method: '',
+        params: '',
+        request_data: null,
+        sort: '',
+        is_assert: 0,
+        assert_mode: '',
+        assert_data: '',
+        assert_type: '',
+        a_result_data: '',
+        is_rely_on: 0,
+        rely_id: '',
+        rely_data: '',
+        rely_mode: '',
+        rely_key: ''
       },
       dialogFormVisible: false,
       dialogStatus: '',
       textMap: {
-        update: 'Edit',
-        create: 'Create'
+        update: '编辑',
+        create: '新增'
       },
       dialogPvVisible: false,
       pvData: [],
       rules: {
-        type: [{ required: true, message: 'type is required', trigger: 'change' }],
-        timestamp: [{ type: 'date', required: true, message: 'timestamp is required', trigger: 'change' }],
-        title: [{ required: true, message: 'title is required', trigger: 'blur' }]
+        case_name: [{ required: true, message: '必填', trigger: 'blur' }],
+        group_name: [{ required: true, message: '必填', trigger: 'blur' }],
+        url: [{ required: true, message: '必填', trigger: 'blur' }],
+        env_url: [{ required: true, message: '必填', trigger: 'blur' }],
+        header: [{ required: true, message: '必填', trigger: 'blur' }],
+        env_header: [{ required: true, message: '必填', trigger: 'blur' }],
+        method: [{ required: true, message: '必填', trigger: 'blur' }],
+        sort: [{ required: true, message: '必填', trigger: 'blur' }],
+        is_assert: [{ required: true, message: '必填', trigger: 'change' }],
+        assert_mode: [{ required: true, message: '必填', trigger: 'blur' }],
+        assert_data: [{ required: true, message: '必填', trigger: 'blur' }],
+        assert_type: [{ required: true, message: '必填', trigger: 'blur' }],
+        a_result_data: [{ required: true, message: '必填', trigger: 'blur' }],
+        is_rely_on: [{ required: true, message: '必填', trigger: 'change' }],
+        rely_id: [{ required: true, message: '必填', trigger: 'blur' }],
+        rely_data: [{ required: true, message: '必填', trigger: 'blur' }],
+        rely_mode: [{ required: true, message: '必填', trigger: 'blur' }],
+        rely_key: [{ required: true, message: '必填', trigger: 'blur' }],
+        path: [{ required: false, message: '非必填', trigger: 'blur' }],
+        request_data: [{ required: false, message: '非必填', trigger: 'blur' }],
+        params: [{ required: false, message: '非必填', trigger: 'blur' }]
       },
-      downloadLoading: false
+      downloadLoading: false,
+      dialogloading: false,
     }
   },
   created() {
@@ -283,15 +365,27 @@ export default {
     getList() {
       this.listLoading = true
       fetchList(this.listQuery).then(response => {
-        // 用例列表
-        this.list = response.object
-        // 总数量
-        this.total = response.object.length
-
-        // Just to simulate the time of the request
-        setTimeout(() => {
-          this.listLoading = false
-        }, 1.5 * 1000)
+        if (response.result === true) {
+          // 用例列表
+          this.list = response.object
+          // 总数量
+          this.total = response.object.length
+          // Just to simulate the time of the request
+          setTimeout(() => {
+            this.listLoading = false
+          }, 1.5 * 1000)
+        }
+        else {
+          this.$message.error(response.msg)
+          // Just to simulate the time of the request
+          setTimeout(() => {
+            this.listLoading = false
+          }, 1.5 * 1000)
+        }
+      }).catch(error => {
+        console.log(error)
+        this.listLoading = false
+        this.$message.error(error)
       })
     },
     handleFilter() {
@@ -320,32 +414,27 @@ export default {
       }
       this.handleFilter()
     },
-    resetTemp() {
-      this.temp = {
-        id: undefined,
-        importance: 1,
-        remark: '',
-        timestamp: new Date(),
-        title: '',
-        status: 'published',
-        type: ''
-      }
-    },
     handleCreate() {
-      this.resetTemp()
+      // this.resetTemp()
       this.dialogStatus = 'create'
       this.dialogFormVisible = true
       this.$nextTick(() => {
         this.$refs['dataForm'].clearValidate()
+        this.$refs['dataForm'].resetFields();
+        this.show_env_header = false
+        this.show_env_url = false
       })
     },
     createData() {
       this.$refs['dataForm'].validate((valid) => {
         if (valid) {
-          this.temp.id = parseInt(Math.random() * 100) + 1024 // mock a id
-          this.temp.author = 'vue-element-admin'
-          createArticle(this.temp).then(() => {
-            this.list.unshift(this.temp)
+          this.dialogloading = true
+          createadd(this.temp).then((response) => {
+            if (response.result === false) {
+              this.dialogloading = false
+              this.$message.error(response.msg)
+              return
+            }
             this.dialogFormVisible = false
             this.$notify({
               title: 'Success',
@@ -353,24 +442,49 @@ export default {
               type: 'success',
               duration: 2000
             })
+            this.dialogloading = false
+            this.getList()
+          }).catch((error) => {
+            console.log(error)
+            this.dialogloading = false
+            this.$message.error(error)
           })
         }
       })
     },
     handleUpdate(row) {
-      this.temp = Object.assign({}, row) // copy obj
-      this.temp.timestamp = new Date(this.temp.timestamp)
-      this.dialogStatus = 'update'
-      this.dialogFormVisible = true
+      const id = {
+        case_id: row.case_id
+      }
+      this.dialogloading = true
+      get_list_one(id).then(response => {
+        if (response.result === false) {
+          this.dialogloading = false
+          this.dialogFormVisible = false
+          this.$message.error(response.msg)
+        }
+        else {
+          this.temp = Object.assign({}, response.object.data) // copy obj
+          this.show_env_url = response.object.is_env.url_env
+          this.show_env_header = response.object.is_env.header_env
+          this.dialogStatus = 'update'
+          this.dialogFormVisible = true
+          this.dialogloading = false
+        }
+      }).catch(error => {
+        console.log(error)
+        this.$message.error(error)
+        this.dialogloading = false
+      })
       this.$nextTick(() => {
         this.$refs['dataForm'].clearValidate()
+        this.$refs['dataForm'].resetFields();
       })
     },
     updateData() {
       this.$refs['dataForm'].validate((valid) => {
         if (valid) {
           const tempData = Object.assign({}, this.temp)
-          tempData.timestamp = +new Date(tempData.timestamp) // change Thu Nov 30 2017 16:41:05 GMT+0800 (CST) to 1512031311464
           updateArticle(tempData).then(() => {
             for (const v of this.list) {
               if (v.id === this.temp.id) {

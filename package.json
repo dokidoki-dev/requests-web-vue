@@ -1,8 +1,8 @@
 {
-  "name": "vue-admin-template",
+  "name": "request-web",
   "version": "4.1.0",
-  "description": "A vue admin template with Element UI & axios & iconfont & permission control & lint",
-  "author": "Pan <panfree23@gmail.com>",
+  "description": "接口自动化平台",
+  "author": "syf",
   "license": "MIT",
   "scripts": {
     "dev": "vue-cli-service serve --mode development",
