@@ -218,7 +218,7 @@
 import waves from '@/directive/waves' // waves directive
 import { parseTime } from '@/utils'
 import Pagination from '@/components/Pagination'
-import { createadd, fetchList, get_list_one, getgroups } from '@/api/test' // secondary package based on el-pagination
+import { createadd, fetchList, get_list_one, getgroups, updatecase } from '@/api/test' // secondary package based on el-pagination
 
 const calendarTypeOptions = [
   { key: 'CN', display_name: 'China' },
@@ -476,30 +476,42 @@ export default {
         this.$message.error(error)
         this.dialogloading = false
       })
-      this.$nextTick(() => {
-        this.$refs['dataForm'].clearValidate()
-        this.$refs['dataForm'].resetFields();
-      })
+      if (this.$refs['dataForm']) {
+        this.$nextTick(() => {
+          this.$refs['dataForm'].clearValidate()
+          this.$refs['dataForm'].resetFields();
+        })
+      }
     },
     updateData() {
       this.$refs['dataForm'].validate((valid) => {
         if (valid) {
+          this.dialogloading = true
           const tempData = Object.assign({}, this.temp)
-          updateArticle(tempData).then(() => {
-            for (const v of this.list) {
-              if (v.id === this.temp.id) {
-                const index = this.list.indexOf(v)
-                this.list.splice(index, 1, this.temp)
-                break
-              }
+          console.log(tempData)
+          updatecase(tempData).then((response) => {
+            if (response.result === false) {
+              console.log(response.msg)
+              this.dialogloading = false
+              this.$message.error(response.msg)
             }
+            else {
+              this.dialogloading = false
+              this.dialogFormVisible = false
+              this.$notify({
+                title: 'Success',
+                message: 'Update Successfully',
+                type: 'success',
+                duration: 2000
+              })
+              this.$message.success(response.msg)
+              this.getList()
+            }
+          }).catch(error => {
+            this.dialogloading = false
+            console.log(error)
+            this.$message.error(error)
             this.dialogFormVisible = false
-            this.$notify({
-              title: 'Success',
-              message: 'Update Successfully',
-              type: 'success',
-              duration: 2000
-            })
           })
         }
       })
