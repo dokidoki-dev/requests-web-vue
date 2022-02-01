@@ -100,7 +100,7 @@
           <el-button size="mini" type="success" @click="handleModifyStatus(row,1)">
             运行
           </el-button>
-          <el-button size="mini" type="danger" @click="handleModifyStatus(row,'deleted')">
+          <el-button size="mini" type="danger" @click="handleDeleteStatus(row,'deleted')">
             删除
           </el-button>
         </template>
@@ -218,7 +218,7 @@
 import waves from '@/directive/waves' // waves directive
 import { parseTime } from '@/utils'
 import Pagination from '@/components/Pagination'
-import { createadd, fetchList, get_list_one, getgroups, updatecase } from '@/api/test' // secondary package based on el-pagination
+import { createadd, deleteecase, fetchList, get_list_one, getgroups, updatecase } from '@/api/test' // secondary package based on el-pagination
 
 const calendarTypeOptions = [
   { key: 'CN', display_name: 'China' },
@@ -355,7 +355,7 @@ export default {
       }).catch((error) => {
         console.log(error)
         this.$message({
-          message: error,
+          message: error || 'error',
           type: "error",// success,warning,error
           duration: 4000,
         });
@@ -385,7 +385,7 @@ export default {
       }).catch(error => {
         console.log(error)
         this.listLoading = false
-        this.$message.error(error)
+        this.$message.error(error || 'error')
       })
     },
     handleFilter() {
@@ -399,6 +399,30 @@ export default {
         type: 'success'
       })
       row.status = status
+    },
+    handleDeleteStatus(row) {
+      const id = {
+        case_id: row.case_id
+      }
+      this.$confirm('你确定要删除吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+      }).then(() => {
+        deleteecase(id).then(response => {
+          if (response.result === false) {
+            this.$message.error(response.msg)
+          }
+          else {
+            this.$message.success(response.msg)
+            this.getList()
+          }
+        }).catch(error => {
+          console.log(error)
+          this.$message.error(error || 'error')
+        })
+      }).catch(error => {
+        console.log(error)
+      });
     },
     sortChange(data) {
       const { prop, order } = data
@@ -438,7 +462,7 @@ export default {
             this.dialogFormVisible = false
             this.$notify({
               title: 'Success',
-              message: 'Created Successfully',
+              message: '成功',
               type: 'success',
               duration: 2000
             })
@@ -447,7 +471,7 @@ export default {
           }).catch((error) => {
             console.log(error)
             this.dialogloading = false
-            this.$message.error(error)
+            this.$message.error(error || 'error')
           })
         }
       })
@@ -473,7 +497,7 @@ export default {
         }
       }).catch(error => {
         console.log(error)
-        this.$message.error(error)
+        this.$message.error(error || 'error')
         this.dialogloading = false
       })
       if (this.$refs['dataForm']) {
@@ -500,7 +524,7 @@ export default {
               this.dialogFormVisible = false
               this.$notify({
                 title: 'Success',
-                message: 'Update Successfully',
+                message: '成功',
                 type: 'success',
                 duration: 2000
               })
@@ -510,7 +534,7 @@ export default {
           }).catch(error => {
             this.dialogloading = false
             console.log(error)
-            this.$message.error(error)
+            this.$message.error(error || 'error')
             this.dialogFormVisible = false
           })
         }
