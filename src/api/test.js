@@ -55,9 +55,36 @@ export function updatecase(data) {
 }
 
 // 删除测试用例
-export function deleteecase(data) {
+export function deletecase(data) {
   return test({
     url: '/api/v1/cases/t_delete',
+    method: 'post',
+    data
+  })
+}
+
+// 执行测试用例
+export function runcase(data) {
+  return test({
+    url: '/api/v1/task/task_add',
+    method: 'post',
+    data
+  })
+}
+
+// 执行当前分组所有测试用例
+export function runallStatus(data) {
+  return test({
+    url: '/api/v1/task/task_add',
+    method: 'post',
+    data
+  })
+}
+
+// 执行当前分组所有测试用例
+export function caseResult(data) {
+  return test({
+    url: '/api/v1/cases/t_result',
     method: 'post',
     data
   })

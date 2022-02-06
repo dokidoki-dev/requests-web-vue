@@ -12,6 +12,9 @@
       <el-button class="filter-item" style="margin-left: 10px;" type="primary" icon="el-icon-edit" @click="handleCreate">
         新增
       </el-button>
+      <el-button class="filter-item" style="margin-left: 10px;" type="primary" @click="handleRunAllStatus">
+        运行此分组
+      </el-button>
     </div>
 
     <el-table
@@ -34,12 +37,12 @@
           <span>{{ scope.row.case_name }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="用例分组" width="100px">
+      <el-table-column label="用例分组" width="100px" align="center">
         <template slot-scope="scope">
           <span>{{ scope.row.group_name }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="链接" min-width="150px" align="center">
+      <el-table-column label="链接" min-width="40px" align="center">
         <template slot-scope="scope">
           <span>{{ scope.row.url }}</span>
         </template>
@@ -64,12 +67,12 @@
           <span>{{ scope.row.header }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="请求数据" width="150px" align="center">
+      <el-table-column label="请求数据" width="200px" align="center">
         <template slot-scope="scope">
           <span>{{ scope.row.request_data }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="排序" width="100px" align="center">
+      <el-table-column label="排序" width="80px" align="center">
         <template slot-scope="scope">
           <span>{{ scope.row.sort }}</span>
         </template>
@@ -84,7 +87,7 @@
           <span>{{ scope.row.is_rely_on?'是':'否' }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="状态" class-name="status-col" width="100">
+      <el-table-column label="状态" class-name="status-col" width="80" align="center">
         <template slot-scope="{row}">
           <el-tag :type="row.status?'success':'0'">
             {{ row.status?'运行中':'未运行' }}
@@ -92,13 +95,16 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="操作" align="center" width="250" class-name="small-padding fixed-width">
+      <el-table-column label="操作" align="center" width="300" class-name="small-padding fixed-width">
         <template slot-scope="{row}">
           <el-button type="primary" size="mini" @click="handleUpdate(row)">
             编辑
           </el-button>
           <el-button size="mini" type="success" @click="handleModifyStatus(row,1)">
             运行
+          </el-button>
+          <el-button size="mini" type="warning" @click="handleResult(row)">
+            结果
           </el-button>
           <el-button size="mini" type="danger" @click="handleDeleteStatus(row,'deleted')">
             删除
@@ -201,14 +207,72 @@
       </div>
     </el-dialog>
 
-    <el-dialog :visible.sync="dialogPvVisible" title="Reading statistics">
-      <el-table :data="pvData" border fit highlight-current-row style="width: 100%">
-        <el-table-column prop="key" label="Channel" />
-        <el-table-column prop="pv" label="Pv" />
-      </el-table>
-      <span slot="footer" class="dialog-footer">
-        <el-button type="primary" @click="dialogPvVisible = false">Confirm</el-button>
-      </span>
+    <el-dialog title="查看运行结果" :visible.sync="dialogResultVisible">
+      <div>
+        <label>用例id: </label>
+        <p>{{ result[0].case_id }}</p>
+      </div>
+      <div>
+        <label>排序: </label>
+        <p>{{ result[0].sort }}</p>
+      </div>
+      <div>
+        <label>用例名字: </label>
+        <p>{{ result[0].case_name }}</p>
+      </div>
+      <div>
+        <label>所属分组: </label>
+        <p>{{ result[0].group_name }}</p>
+      </div>
+      <div>
+        <label>状态: </label>
+        <p>{{ result[0].status }}</p>
+      </div>
+      <div>
+        <label>子状态: </label>
+        <p>{{ result[0].sub_status }}</p>
+      </div>
+      <div>
+        <label>是否断言: </label>
+        <p>{{ result[0].is_assert }}</p>
+      </div>
+      <div>
+        <label>断言状态: </label>
+        <p>{{ result[0].a_status || '无' }}</p>
+      </div>
+      <div>
+        <label>请求数据: </label>
+        <p>{{ result[0].request_data || '无' }}</p>
+      </div>
+      <div>
+        <label>请求状态码: </label>
+        <p>{{ result[0].result_code || '无' }}</p>
+      </div>
+      <div>
+        <label>接口返回数据: </label>
+        <p>{{ result[0].result_data || '无' }}</p>
+      </div>
+      <div>
+        <label>断言数据: </label>
+        <p>{{ result[0].a_data || '无' }}</p>
+      </div>
+      <div>
+        <label>断言类型: </label>
+        <p>{{ result[0].a_mode || '无' }}</p>
+      </div>
+      <div>
+        <label>断言预期结果数据: </label>
+        <p>{{ result[0].a_result_data || '无' }}</p>
+      </div>
+      <div>
+        <label>数据类型: </label>
+        <p>{{ result[0].a_type || '无' }}</p>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="dialogResultVisible = false">
+          确定
+        </el-button>
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -218,7 +282,17 @@
 import waves from '@/directive/waves' // waves directive
 import { parseTime } from '@/utils'
 import Pagination from '@/components/Pagination'
-import { createadd, deleteecase, fetchList, get_list_one, getgroups, updatecase } from '@/api/test' // secondary package based on el-pagination
+import {
+  caseResult,
+  createadd,
+  deleteecase,
+  fetchList,
+  get_list_one,
+  getgroups,
+  runallStatus,
+  runcase,
+  updatecase
+} from '@/api/test' // secondary package based on el-pagination
 
 const calendarTypeOptions = [
   { key: 'CN', display_name: 'China' },
@@ -295,7 +369,26 @@ export default {
         rely_mode: '',
         rely_key: ''
       },
+      // 存储用例执行结果
+      result: [{
+        case_id: "",
+        sort: '',
+        case_name: '',
+        group_name: '',
+        status: "",
+        sub_status: "",
+        a_status: "",
+        request_data: "",
+        result_code: "",
+        result_data: "",
+        a_data: "",
+        a_mode: "",
+        a_result_data: "",
+        a_type: "",
+        is_assert: ""
+      }],
       dialogFormVisible: false,
+      dialogResultVisible: false,
       dialogStatus: '',
       textMap: {
         update: '编辑',
@@ -394,11 +487,45 @@ export default {
       this.getList()
     },
     handleModifyStatus(row, status) {
-      this.$message({
-        message: '操作Success',
-        type: 'success'
+      const id = {
+        case_id: row.case_id,
+        case_type: 1
+      }
+      runcase(id).then(response => {
+        if (response.result === false) {
+          this.$message.error(response.msg)
+        }
+        else {
+          this.$message.success(response.msg)
+          row.status = status
+        }
+      }).catch(error => {
+        this.$message.error(error || 'error')
       })
-      row.status = status
+    },
+    handleRunAllStatus() {
+      const id = {
+        case_group: this.listQuery.group_name,
+        case_type: 0
+      }
+      console.log(this.temp.group_name)
+      this.$confirm('你确定要运行当前分组的所有测试用例吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+      }).then(() => {
+        runallStatus(id).then(response => {
+          if (response.result === false) {
+            this.$message.error(response.msg)
+          }
+          else {
+            this.$message.success(response.msg)
+          }
+        }).catch(error => {
+          this.$message.error(error || 'error')
+        })
+      }).catch(error => {
+        console.log(error)
+      })
     },
     handleDeleteStatus(row) {
       const id = {
@@ -408,7 +535,7 @@ export default {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
       }).then(() => {
-        deleteecase(id).then(response => {
+        deletecase(id).then(response => {
           if (response.result === false) {
             this.$message.error(response.msg)
           }
@@ -475,6 +602,47 @@ export default {
           })
         }
       })
+    },
+    handleResult(row) {
+      const id = {
+        case_id: row.case_id
+      }
+      this.dialogloading = true
+      caseResult(id).then(response => {
+        if (response.result === false) {
+          this.dialogloading = false
+          this.$message.error(response.msg)
+        }
+        else {
+          this.result[0].case_id = response.object.case_id
+          this.result[0].result_data = response.object.result_data
+          this.result[0].result_code = response.object.result_code
+          this.result[0].a_data = response.object.a_data
+          this.result[0].a_mode = response.object.a_mode
+          this.result[0].a_result_data = response.object.a_result_data
+          this.result[0].a_type = response.object.a_type
+          this.result[0].a_status = response.object.a_status
+          this.result[0].sort = response.object.sort
+          this.result[0].status = response.object.status
+          this.result[0].sub_status = response.object.sub_status
+          this.result[0].is_assert = response.object.is_assert
+          this.result[0].case_name = response.object.case_name
+          this.result[0].group_name = response.object.group_name
+          this.result[0].request_data = response.object.request_data
+          this.dialogloading = false
+          this.dialogResultVisible = true
+        }
+      }).catch(error => {
+        console.log(error)
+        this.$message.error(error || 'error')
+        this.dialogloading = false
+      })
+      if (this.$refs['Result']) {
+        this.$nextTick(() => {
+          this.$refs['Result'].clearValidate()
+          this.$refs['Result'].resetFields();
+        })
+      }
     },
     handleUpdate(row) {
       const id = {
